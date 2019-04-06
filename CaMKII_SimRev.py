@@ -15,11 +15,11 @@ from matplotlib.figure import Figure #To use Figure command
 #Parameters
 #############################################
 
-phospho_rate = 0 #Relative phosphorylation rate. 1 for WT, 0 for T286A phsophorylation.
-phosphatase = 1 #Relative phosphatase activity. 1 for WT, 0 for T286D.
+phospho_rate = 1 #Relative phosphorylation rate. 1 for WT, 0 for T286A phsophorylation.
+phosphatase = 0 #Relative phosphatase activity. 1 for WT, 0 for T286D.
 
-autonomous = 0.6 #conformation at autonomous states compared to CaM-bound states. In the simplest model, this is 1.
-binding_To_PCaMK = 0.1 #Binding of Ca/CaM to phosphorylated CaMKII compared to non-phosphorylated CaMKII. 
+autonomous = 1 #0.6 #conformation at autonomous states compared to CaM-bound states. In the simplest model, this is 1.
+binding_To_PCaMK = 0 #0.1 #Binding of Ca/CaM to phosphorylated CaMKII compared to non-phosphorylated CaMKII. 
 #In many models, this is considered to be zero. However, we observed
 #binding of CaM to CaMKII-T286D/T305D/T306D
 
