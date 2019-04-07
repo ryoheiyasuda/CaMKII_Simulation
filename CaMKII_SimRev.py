@@ -14,12 +14,11 @@ from matplotlib.figure import Figure #To use Figure command
 ############################################
 #Parameters
 #############################################
-
 phospho_rate = 1 #Relative phosphorylation rate. 1 for WT, 0 for T286A phsophorylation.
 phosphatase = 0 #Relative phosphatase activity. 1 for WT, 0 for T286D.
 
-autonomous = 1 #0.6 #conformation at autonomous states compared to CaM-bound states. In the simplest model, this is 1.
-binding_To_PCaMK = 0 #0.1 #Binding of Ca/CaM to phosphorylated CaMKII compared to non-phosphorylated CaMKII. 
+autonomous = 0.6 #conformation at autonomous states compared to CaM-bound states. In the simplest model, this is 1.
+binding_To_PCaMK = 0.1 #Binding of Ca/CaM to phosphorylated CaMKII compared to non-phosphorylated CaMKII. 
 #In many models, this is considered to be zero. However, we observed
 #binding of CaM to CaMKII-T286D/T305D/T306D
 
@@ -28,7 +27,8 @@ subtract_baseline = False #If you want to plot changes from baseline, put true.
 baseLineTime = 100 #seconds.#Wait for equilibration.
 endTime = 200 #seconds
 
-SpikeTiming = False #False for usual uncaging. 
+SpikeTiming = True #False for usual uncaging. 
+ReleaseProbability = 0.5 #Only for spike timing.
 
 dt = 1e-4 #time step in sconds.Needs at least 1e-4.
 nSamples = round((baseLineTime + endTime)/dt) #Number of samples.
@@ -55,21 +55,19 @@ if not SpikeTiming:
     for i in range(pulseN):
         CaCore2 = (0.5*np.exp(-i/5)+0.5)*CaCore
         Ca[baseLine+i*pulseI:] = Ca[baseLine+i*pulseI:] + CaCore2[:-i*pulseI -baseLine]
-    
-    #
 else:
 #Spike-timning protocol LTP.
     print("Calculating Ca2+...(STDP)")
-    pulseN = 60 #number of uncaging pulses. pulse interval = 2s.
-    peakCaAP = 0.8e-6 # Sabatini et al., 2000, 0.8uM
-    peakCaPair = 2.4e-6 #When paired, 3x more. Siller et al.
+    pulseN = 120 #number of uncaging pulses. pulse interval = 2s.
+    peakCaAP = 1e-6 # Sabatini et al., 2000, ~1uM
+    peakCaPair = 3e-6 #When paired, 3x more. Siller et al.
     pulseInterval = 1 #seconds
-    ReleaseProbability = 0.5
+    
+    pulseI = round(pulseInterval/dt) 
     releaseEvent = np.random.random_sample(pulseI,) < ReleaseProbability
     peakCa = (peakCaPair - peakCaAP) * releaseEvent + peakCaAP #Only when release occurs, Ca2+ is 3 times higher.
     Ca_decay = 0.02 #seconds. #Decay similar to 
     
-    pulseI = round(pulseInterval/dt) 
     Ca = np.zeros(nSamples) #Initilize Ca2+. 
     
     baseLine = round(baseLineTime/dt)
@@ -78,10 +76,10 @@ else:
        CaCore = peakCa[i] * np.exp(-t1/Ca_decay)
        Ca[baseLine+i*pulseI: ] = Ca[baseLine+i*pulseI: ] + CaCore[:-i*pulseI - baseLine]
        
-Ca = Ca + 50e-9 #Add resting Ca2+
+Ca = Ca + 50e-9 #Add resting Ca2+. 50nM is enough to activate CaMKII a little bit.
 
 #########################################
-#Ca2+ time course.
+#Kinetic Parameters
 #########################################
 
 CaMT = 30e-6 #Total calmodulin concentration.
@@ -161,6 +159,9 @@ k_dephospho = 1/6 * phosphatase #k3, P --> K Rate of dephosphorylation = 6s.
 k_P1_P2 = 1/60 #k5, P --> P2, Holding for 60 s. 
 k_P2_P1 = 1/6*0.25 #k4. K --> P2, 0.25 times slower than P --> K.
 
+#########################################
+#Simulation body. Use dA = k * A * dt
+#########################################
 print("Starting simulation...")
 for i in range(1,nSamples):
     #Pepke et al., 2010. Two Ca2+ ions bind to C or N-lobe.
@@ -250,8 +251,7 @@ for i in range(1,nSamples):
     CaMKP2_V = 0
     #Second phosphorylation state (P2)
     CaMKP2_V = CaMKP2_V + k_P1_P2 * CaMKP[i-1] - k_P2_P1 * CaMKP2[i-1]
-    CaMKP_V  = CaMKP_V  - k_P1_P2 * CaMKP[i-1] + k_P2_P1 * CaMKP2[i-1]
-    
+    CaMKP_V  = CaMKP_V  - k_P1_P2 * CaMKP[i-1] + k_P2_P1 * CaMKP2[i-1]    
     
     #Applying new values 
     #X[i] = X[i-1] + dt*V
