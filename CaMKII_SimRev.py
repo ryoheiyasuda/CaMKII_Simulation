@@ -5,11 +5,9 @@ Created on Sat Apr  6 13:33:27 2019
 @author: yasudar
 """
 import numpy as np
-import matplotlib as mpl
-import tkinter as tk
-import sys
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.figure import Figure #To use Figure command
+import matplotlib.pyplot as plt
+import sys, os
+from matplotlib.backends.backend_pdf import PdfPages
 
 """
 ############################################
@@ -169,7 +167,14 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
     #########################################
     print("Starting simulation...")
     for i in range(1,nSamples):
-        #Pepke et al., 2010. Two Ca2+ ions bind to C or N-lobe.
+        #V, VK, VP... are the rate of CaM, K, P increases. We first calculate the rate, and 
+        #then apply to the value.
+        #X[0]: 0 Ca2+
+        #X[1]: 2 Ca2+ in C lobe.
+        #X[2]: 2 Ca2+ in N lobe
+        #X[3]: 4 Ca2+
+        
+        #Based on Pepke et al., 2010. Two Ca2+ ions bind to C or N-lobe.
         #2 Ca + CaM0 <-> Ca2CaM-C
         #2 Ca + CaM0 <-> Ca2CaM-N
         #2 Ca + Ca2CaM-C <-> Ca4CaM
@@ -183,7 +188,7 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
         kon = [C_on,  N_on,  N_on, C_on] 
         koff = [C_off, N_off, N_off, C_off]
     
-        V = np.zeros(NBindingSite) #Rate.
+        V = np.zeros(NBindingSite) #Rate CaM
         V[0] = -kon[0]*Ca[i-1]**2*CaMCa[0,i-1] + koff[0]*CaMCa[1,i-1] + koff[1]*CaMCa[2,i-1] - kon[1]*Ca[i-1]**2*CaMCa[0,i-1] #CaM0
         V[1] = -kon[2]*Ca[i-1]**2*CaMCa[1,i-1] + koff[2]*CaMCa[3,i-1] - koff[0]*CaMCa[1,i-1] + kon[0]*Ca[i-1]**2*CaMCa[0,i-1] #Ca2-C
         V[2] = -kon[3]*Ca[i-1]**2*CaMCa[2,i-1] + koff[3]*CaMCa[3,i-1] - koff[1]*CaMCa[2,i-1] + kon[1]*Ca[i-1]**2*CaMCa[0,i-1]  #Ca2-N
@@ -203,24 +208,23 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
         kon_K = [KC_on,  KN_on,  KN_on, KC_on] 
         koff_K = [KC_off, KN_off, KN_off, KC_off]
     
-        VK = np.zeros(NBindingSite)
+        VK = np.zeros(NBindingSite) #Rate of CaM-CaMKII
         VK[0] = -kon_K[0]*Ca[i-1]**2*CaM_CaMK[0,i-1] + koff_K[0]*CaM_CaMK[1,i-1] + koff_K[1]*CaM_CaMK[2,i-1] - kon_K[1]*Ca[i-1]**2*CaM_CaMK[0,i-1]
         VK[1] = -kon_K[2]*Ca[i-1]**2*CaM_CaMK[1,i-1] + koff_K[2]*CaM_CaMK[3,i-1] - koff_K[0]*CaM_CaMK[1,i-1] + kon_K[0]*Ca[i-1]**2*CaM_CaMK[0,i-1]    
         VK[2] = -kon_K[3]*Ca[i-1]**2*CaM_CaMK[2,i-1] + koff_K[3]*CaM_CaMK[3,i-1] - koff_K[1]*CaM_CaMK[2,i-1] + kon_K[1]*Ca[i-1]**2*CaM_CaMK[0,i-1]
         VK[3] = +kon_K[2]*Ca[i-1]**2*CaM_CaMK[1,i-1] - koff_K[2]*CaM_CaMK[3,i-1] - koff_K[3]*CaM_CaMK[3,i-1] + kon_K[3]*Ca[i-1]**2*CaM_CaMK[2,i-1]  
         
-        #Binding of Ca to CaM-CaMKIIP. Assuming that same for K.
-        #
+        #Binding of Ca to CaM-CaMKIIP. The scheme and values are the same as K.
         kon_P = kon_K
         koff_P = koff_K
         #
-        VP = np.zeros(NBindingSite)
+        VP = np.zeros(NBindingSite) #Rate of CaM-CaMII-P
         VP[0] = -kon_P[0]*Ca[i-1]**2*CaM_CaMKP[0,i-1] + koff_P[0]*CaM_CaMKP[1,i-1] + koff_P[1]*CaM_CaMKP[2,i-1] - kon_P[1]*Ca[i-1]**2*CaM_CaMKP[0,i-1]
         VP[1] = -kon_P[2]*Ca[i-1]**2*CaM_CaMKP[1,i-1] + koff_P[2]*CaM_CaMKP[3,i-1] - koff_P[0]*CaM_CaMKP[1,i-1] + kon_P[0]*Ca[i-1]**2*CaM_CaMKP[0,i-1]    
         VP[2] = -kon_P[3]*Ca[i-1]**2*CaM_CaMKP[2,i-1] + koff_P[3]*CaM_CaMKP[3,i-1] - koff_P[1]*CaM_CaMKP[2,i-1] + kon_P[1]*Ca[i-1]**2*CaM_CaMKP[0,i-1]
         VP[3] = +kon_P[2]*Ca[i-1]**2*CaM_CaMKP[1,i-1] - koff_P[2]*CaM_CaMKP[3,i-1] - koff_P[3]*CaM_CaMKP[3,i-1] + kon_P[3]*Ca[i-1]**2*CaM_CaMKP[2,i-1]  
     
-        #Binding of CaM to CaMKII (VK) or CaMII-P (VP)
+        #Binding of CaM to CaMKII (rate = VK) or CaMII-P (rate = VP)
         #CaM0 <-> CaM0CaMKII
         #2CaCaM-C <-> Ca2CaM-C-CaMKII
         #2CaCaM-N <-> Ca2CaM-N-CaMKII
@@ -229,7 +233,8 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
         #CaMKP, CaMK = free CaMKII / CaMKII-P
         CaMK_V = 0 #rate of free CaMK increase.
         CaMKP_V = 0 #rate of free CaMKP increase.
-        for j in range(NBindingSite): #1:4
+        CaMKP2_V = 0 #rate of free CaMKP2 increase.
+        for j in range(NBindingSite): #0-3
             V[j] = V[j]   - kon_KCaM[j]*CaMK[i-1]*CaMCa[j,i-1]  - kon_PCaM[j]*CaMKP[i-1]*CaMCa[j,i-1] + koff_KCaM[j]*CaM_CaMK[j,i-1] + koff_PCaM[j]*CaM_CaMKP[j,i-1]
             VK[j] = VK[j] + kon_KCaM[j]*CaMK[i-1]*CaMCa[j,i-1]  - koff_KCaM[j]*CaM_CaMK[j,i-1]
             VP[j] = VP[j] + kon_PCaM[j]*CaMKP[i-1]*CaMCa[j,i-1] - koff_PCaM[j]*CaM_CaMKP[j,i-1]
@@ -238,27 +243,27 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
             CaMKP_V = CaMKP_V - kon_PCaM[j]*CaMKP[i-1]*CaMCa[j,i-1] + koff_PCaM[j]*CaM_CaMKP[j,i-1]
         
         #Phosphorylation CaMXCaMKII -> CaMXCaMKIIP. 
-        #No dephosphorylation while binding to CaM. 
+        #Assume no dephosphorylation while binding to CaM. 
         #Fraction active = (CaMKP + sum(CaM_CaMKP,1) + sum(CaM_CaMK,1))/CaMKII_T
         #Rate ~ proportional to the probability that the next subunit is
         #active.
         FA = (CaMKP[i-1] + CaMKP2[i-1] + np.sum(CaM_CaMKP[:,i-1],axis=0) + np.sum(CaM_CaMK[:,i-1],axis=0))/CaMKII_T 
         
-        for j in range(1,NBindingSite - 1):
-            VK[j] = VK[j] - k_phosCaM * FA * CaM_CaMK[j,i-1]
-            VP[j] = VP[j] + k_phosCaM * FA * CaM_CaMK[j,i-1]
+        for j in range(1,NBindingSite - 1): 
+            VK[j] = VK[j] - k_phosCaM * FA * CaM_CaMK[j,i-1] #K decreases by phosphorylation
+            VP[j] = VP[j] + k_phosCaM * FA * CaM_CaMK[j,i-1] #P increases by phosphorylation
         
         #Dephosphorylation.
         # CaMKP -> CaMK
         CaMKP_V = CaMKP_V - k_dephospho * CaMKP[i-1]
         CaMK_V  = CaMK_V + k_dephospho * CaMKP[i-1]
-        
-        CaMKP2_V = 0
+                
         #Second phosphorylation state (P2)
+        #CaMKP <-> CaMKP2
         CaMKP2_V = CaMKP2_V + k_P1_P2 * CaMKP[i-1] - k_P2_P1 * CaMKP2[i-1]
         CaMKP_V  = CaMKP_V  - k_P1_P2 * CaMKP[i-1] + k_P2_P1 * CaMKP2[i-1]    
         
-        #Applying new values 
+        #Finally applying new values 
         #X[i] = X[i-1] + dt*V
         for j in range(NBindingSite):
             CaMCa[j,i] = CaMCa[j,i-1] + dt*V[j]
@@ -276,15 +281,22 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
         
     
     #CaM_CaMKP adn CaM_CaMK are all active.
-    activeCaMKII = ((CaMKP + CaMKP2) * autonomous + np.sum(CaM_CaMKP,axis=0) + np.sum(CaM_CaMK,axis=0))/CaMKII_T
+    #Assuming that autonomnous CaMKII activity is smaller.
+    CaMKP = CaMKP * autonomous / CaMKII_T
+    CaMKP2 = CaMKP2 * autonomous / CaMKII_T
+    PhosphoCaMKII = CaMKP + CaMKP2
+    
     CaM_Bound = (np.sum(CaM_CaMKP,axis=0) + np.sum(CaM_CaMK,axis=0))/CaMKII_T
-    PhosphoCaMKII = (CaMKP + CaMKP2) * autonomous/CaMKII_T
+    
+    activeCaMKII = CaM_Bound + PhosphoCaMKII
     
     #Subtracting baseline.
     if subtract_baseline:
         activeCaMKII = activeCaMKII - activeCaMKII[baseLine-1]
         CaM_Bound = CaM_Bound - CaM_Bound[baseLine-1]
         PhosphoCaMKII = PhosphoCaMKII - PhosphoCaMKII[baseLine-1]
+        CaMKP = CaMKP - CaMKP[baseLine-1]
+        CaMKP2 = CaMKP2 - CaMKP2[baseLine-1]
     
     t1 = t1-baseLineTime #Time 0 = first pulse.
     
@@ -295,42 +307,46 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
     activeCaMKII = np.mean(np.reshape(activeCaMKII, (nS, Downsample)), axis = 1)
     CaM_Bound = np.mean(np.reshape(CaM_Bound, (nS, Downsample)), axis = 1)
     PhosphoCaMKII = np.mean(np.reshape(PhosphoCaMKII, (nS, Downsample)), axis = 1)
+    CaMKP = np.mean(np.reshape(CaMKP, (nS, Downsample)), axis = 1)
+    CaMKP2 = np.mean(np.reshape(CaMKP2, (nS, Downsample)), axis = 1)
     
     print("")
-    return (t1, activeCaMKII, CaM_Bound, PhosphoCaMKII)
+    return (t1, activeCaMKII, CaM_Bound, PhosphoCaMKII, CaMKP, CaMKP2)
 
 #####################################################
 #Plotting
 #####################################################    
 if __name__ == "__main__":
-    (t1, activeCaMKII, CaM_Bound, PhosphoCaMKII) = CaMKII_Sim(1, 1, 0.6, 0.1, False, False, 1)
+    (t1, activeCaMKII, CaM_Bound, PhosphoCaMKII,CaMKP, CaMKP2) = CaMKII_Sim(1, 1, 1, 0, False, False, 1)
     windowResolution = 100
     plotsize = (8,4)
-    plotWindow = tk.Tk()
-    plotWindow.wm_title('Plot window')                
-    f = Figure(figsize = plotsize, dpi=windowResolution) #define the size of the figure.
+    filename = r'CaMKII_Sim.pdf'
     
-    a = f.add_subplot(1,2,1)
-    a.plot(t1, activeCaMKII, '-k')
-    a.plot(t1, CaM_Bound, '-r')
-    a.plot(t1, PhosphoCaMKII, '-b')
-    
-    a.set_xlim(-2, 20)
-    a.set_ylim(0, 0.8)
-    
-    a = f.add_subplot(1,2,2)
-    a.plot(t1, activeCaMKII, '-k')
-    a.plot(t1, CaM_Bound, '-r')
-    a.plot(t1, PhosphoCaMKII, '-b')
-    
-    a.set_xlim(-10,160)
-    a.set_ylim(0, 0.8)
-    
-    canvas = FigureCanvasTkAgg(f, plotWindow)
-    canvas.get_tk_widget().pack(side = tk.TOP, fill = tk.BOTH, expand = True)
-    
-    NavigationToolbar2Tk(canvas, plotWindow).update()
-    canvas._tkcanvas.pack(side = tk.TOP, fill = tk.BOTH, expand = True)
-    plotWindow.protocol("WM_DELETE_WINDOW", plotWindow.quit)
-    plotWindow.mainloop()
-    plotWindow.destroy()
+    with PdfPages(filename) as export_pdf:
+        
+        f = plt.figure(figsize = plotsize, dpi=windowResolution) #define the size of the figure.
+        
+        a = f.add_subplot(1,2,1)
+        a.plot(t1, activeCaMKII, '-k')
+        a.plot(t1, CaM_Bound, '-r')
+        a.plot(t1, PhosphoCaMKII, '-b')
+        a.plot(t1, CaMKP, '-c')
+        a.plot(t1, CaMKP2, '-m')
+        
+        a.set_xlim(-2, 20)
+        a.set_ylim(0, 0.8)
+        
+        a = f.add_subplot(1,2,2)
+        a.plot(t1, activeCaMKII, '-k')
+        a.plot(t1, CaM_Bound, '-r')
+        a.plot(t1, PhosphoCaMKII, '-b')
+        a.plot(t1, CaMKP, '-c')
+        a.plot(t1, CaMKP2, '-m')
+        
+        a.set_xlim(-10,160)
+        a.set_ylim(0, 0.8)
+        
+        export_pdf.savefig()
+        plt.close()
+        
+    os.startfile(filename)
