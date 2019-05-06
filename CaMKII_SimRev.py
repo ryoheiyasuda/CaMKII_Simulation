@@ -25,6 +25,15 @@ subtract_baseline = False #If you want to plot changes from baseline, put true.
 
 SpikeTiming = True #False for usual uncaging. 
 ReleaseProbability = 1 #Only for spike timing.
+
+Return value:
+    (t1, activeCaMKII, CaM_Bound, PhosphoCaMKII,CaMKP, CaMKP2)
+    t1: time
+    activeCaMKII: Active CaMKII
+    CaM_Bound: Fraction of CaMKII in CaM-bound state.
+    PhosphoCaMKII: Fraction of CaMKII in phosphorylated state (at T286).
+    CaMKP: Fraction of CaMKII in P state (see Fig. 6 Chang et al., Nat Commu)
+    CaMKP2: Fraction of CaMKII in P2 state (see Fig. 6 Chang et al., Nat Commu)
 ##############################################
 """
 def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, subtract_baseline=False, SpikeTiming=False, ReleaseProbability=1):
@@ -49,10 +58,10 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
         Ca_decay = 0.1 #seconds. NMDA receptor opening. Evans et al., 2018.
         
         #Ca2+ time course.
-        pulseI = round(pulseInterval/dt)
+        pulseI = round(pulseInterval/dt) #Conert to time step
         Ca = np.zeros(nSamples)
         CaCore = peakCa*np.exp(-t1/Ca_decay) #Ca2+ in response to single uncaging
-        baseLine = round(baseLineTime/dt)
+        baseLine = round(baseLineTime/dt) #Convert to time step
         
         for i in range(pulseN):
             CaCore2 = (0.5*np.exp(-i/5)+0.5)*CaCore
@@ -69,7 +78,7 @@ def CaMKII_Sim(phospho_rate=1, phosphatase=1, autonomous=1, binding_To_PCaMK=0, 
         pulseI = round(pulseInterval/dt) 
         releaseEvent = np.random.random_sample(pulseI,) < ReleaseProbability
         peakCa = (peakCaPair - peakCaAP) * releaseEvent + peakCaAP #Only when release occurs, Ca2+ is 3 times higher.
-        Ca_decay = 0.02 #seconds. #Decay similar to 
+        Ca_decay = 0.02 #seconds. #Sabatini et al., 2002
         
         Ca = np.zeros(nSamples) #Initilize Ca2+. 
         
