@@ -18,12 +18,13 @@ phosphatase = 0 #Relative phosphatase activity. 1 for WT, 0 for T286D.
 
 autonomous = 1 #conformation at autonomous states compared to CaM-bound states. In the simplest model, default is 1.
 binding_To_PCaMK = 0 #Binding of Ca/CaM to phosphorylated CaMKII compared to non-phosphorylated CaMKII. 
-    #In many models, this is considered to be zero. However, we observed
-    #binding of CaM to CaMKII-T286D/T305D/T306D
+    #In many models, this is assumed to be zero. However, we observed
+    #binding of CaM to CaMKII-T286D/T305D/T306D. 
+    #For Chang et al., Nat Commu paper, we set the value to 0.1
 
-subtract_baseline = False #If you want to plot changes from baseline, put true.
+subtract_baseline = False #If you want to plot changes from baseline, set the value to true.
 
-SpikeTiming = True #False for usual uncaging. 
+SpikeTiming = #False If you want to simulate spike-timing set this value to true.
 ReleaseProbability = 1 #Only for spike timing.
 
 Return value:
